@@ -21,4 +21,12 @@ message UserSettings {
     WakeDevice wake_device = 8;
     SttPlaySound stt_play_sound = 9;
     int32 stt_silence_duration = 10;
+
+    // On-device LLM orchestrator (see docs/local-llm.md)
+    // Whether every request is routed through the local LLM instead of the normal skill ranker.
+    bool llm_enabled = 11;
+    // GGUF model download URL; empty means use the built-in default.
+    string llm_model_url = 12;
+    // Whether the assistant learns durable facts about the user into assistant-memory.md.
+    bool llm_learning_enabled = 13;
 }
