@@ -12,4 +12,7 @@ object MainSettings
 object SkillSettings
 
 @Serializable
+object LocalAiSettings
+
+@Serializable
 object About

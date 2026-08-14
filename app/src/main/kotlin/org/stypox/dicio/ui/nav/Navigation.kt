@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import org.stypox.dicio.R
 import org.stypox.dicio.io.input.stt_popup.SttPopupActivity
+import org.stypox.dicio.settings.LocalAiSettingsScreen
 import org.stypox.dicio.settings.MainSettingsScreen
 import org.stypox.dicio.settings.SkillSettingsScreen
 import org.stypox.dicio.ui.about.AboutScreen
@@ -56,11 +57,16 @@ fun Navigation() {
             MainSettingsScreen(
                 navigationIcon = backIcon,
                 navigateToSkillSettings = { navController.navigate(SkillSettings) },
+                navigateToLocalAiSettings = { navController.navigate(LocalAiSettings) },
             )
         }
 
         composable<SkillSettings> {
             SkillSettingsScreen(navigationIcon = backIcon)
+        }
+
+        composable<LocalAiSettings> {
+            LocalAiSettingsScreen(navigationIcon = backIcon)
         }
 
         composable<About> {

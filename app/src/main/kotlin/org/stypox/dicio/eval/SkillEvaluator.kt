@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.dicio.skill.skill.InteractionPlan
@@ -38,6 +39,12 @@ class SkillEvaluatorImpl(
     private val skillContext: SkillContextInternal,
     private val skillHandler: SkillHandler,
     private val sttInputDevice: SttInputDeviceWrapper,
+    // When the LLM orchestrator is enabled in settings, every input is routed to it instead of the
+    // normal skill ranker (the "model decides" mode). Nullable so existing tests/previews that
+    // don't provide it keep the classic behaviour.
+    private val llmOrchestrator: org.stypox.dicio.llm.orchestrator.LlmOrchestrator? = null,
+    private val userSettings:
+        androidx.datastore.core.DataStore<org.stypox.dicio.settings.datastore.UserSettings>? = null,
 ) : SkillEvaluator {
 
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -95,7 +102,28 @@ class SkillEvaluatorImpl(
         }
     }
 
+    /** Reads whether the LLM orchestrator should handle input, defaulting to false on any error. */
+    private suspend fun isLlmOrchestratorEnabled(): Boolean {
+        if (llmOrchestrator == null || userSettings == null) return false
+        return try {
+            userSettings.data.first().llmEnabled
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
     private suspend fun evaluateMatchingSkill(utterances: List<String>) {
+        // "Model decides" mode: bypass the ranker entirely and let the LLM handle every input,
+        // calling wrapped skills as tools when appropriate.
+        if (isLlmOrchestratorEnabled()) {
+            val input = utterances[0]
+            val orchestratorSkill =
+                org.stypox.dicio.llm.orchestrator.OrchestratorSkill(llmOrchestrator!!)
+            val chosen = orchestratorSkill.scoreAndWrapResult(skillContext, input)
+            evaluateChosenSkill(input, chosen)
+            return
+        }
+
         val (chosenInput, chosenSkill) = try {
             utterances.firstNotNullOfOrNull { input: String ->
                 skillContext.standardMatchHelper = MatchHelper(skillContext.parserFormatter, input)
@@ -112,6 +140,10 @@ class SkillEvaluatorImpl(
             // significant since the purpose of MatchHelper is to cache information about the input)
             skillContext.standardMatchHelper = null
         }
+        evaluateChosenSkill(chosenInput, chosenSkill)
+    }
+
+    private suspend fun evaluateChosenSkill(chosenInput: String, chosenSkill: SkillWithResult<*>) {
         val skillInfo = chosenSkill.skill.correspondingSkillInfo
 
         _state.value = _state.value.copy(
@@ -226,7 +258,12 @@ class SkillEvaluatorModule {
         skillContext: SkillContextInternal,
         skillHandler: SkillHandler,
         sttInputDevice: SttInputDeviceWrapper,
+        llmOrchestrator: org.stypox.dicio.llm.orchestrator.LlmOrchestrator,
+        userSettings:
+            androidx.datastore.core.DataStore<org.stypox.dicio.settings.datastore.UserSettings>,
     ): SkillEvaluator {
-        return SkillEvaluatorImpl(skillContext, skillHandler, sttInputDevice)
+        return SkillEvaluatorImpl(
+            skillContext, skillHandler, sttInputDevice, llmOrchestrator, userSettings
+        )
     }
 }
