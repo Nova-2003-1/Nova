@@ -85,6 +85,13 @@ configured in `GgufModelManager`.
 
 ## Building
 
+> **Application identity.** This fork ships under its own package id
+> `lol.everyday5631.nova` (set as `applicationId` in `app/build.gradle.kts`), so
+> the built APK installs as a standalone app and does not collide with an
+> upstream Dicio install. Debug builds additionally append the git-branch suffix
+> (`applicationIdSuffix`), e.g. `lol.everyday5631.nova.<branch>`. The internal
+> source package (`namespace`) intentionally stays `org.stypox.dicio`.
+
 The native build is **opt-in** and only targets 64-bit ABIs (a 1B model is not
 viable on 32-bit `armeabi-v7a`).
 

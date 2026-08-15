@@ -30,7 +30,11 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "org.stypox.dicio"
+        // Rebranded application identity: the installed APK / Play Store package is
+        // "lol.everyday5631.nova" (the Nova fork), independent of the internal source
+        // package (`namespace` below stays org.stypox.dicio so the Kotlin sources and
+        // generated R/BuildConfig classes do not need to move).
+        applicationId = "lol.everyday5631.nova"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 18
