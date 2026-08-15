@@ -30,7 +30,11 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "org.stypox.dicio"
+        // Rebranded application identity: the installed APK / Play Store package is
+        // "lol.everyday5631.nova" (the Nova fork), independent of the internal source
+        // package (`namespace` below stays org.stypox.dicio so the Kotlin sources and
+        // generated R/BuildConfig classes do not need to move).
+        applicationId = "lol.everyday5631.nova"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 18
@@ -41,6 +45,24 @@ android {
 
         ndk {
             abiFilters += arrayOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+
+        // On-device LLM (llama.cpp) native build. Only 64-bit ABIs are built for the LLM: a ~1B
+        // model is not viable on 32-bit armeabi-v7a. The CMakeLists gracefully builds a stub when
+        // the llama.cpp submodule is absent (see docs/local-llm.md), so this stays buildable in CI.
+        externalNativeBuild {
+            cmake {
+                // C++17, and only compile the LLM lib for arm64-v8a (device) and x86_64 (emulator)
+                arguments += "-DANDROID_STL=c++_shared"
+                abiFilters += arrayOf("arm64-v8a", "x86_64")
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 

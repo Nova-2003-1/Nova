@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +50,7 @@ import org.stypox.dicio.ui.theme.AppTheme
 fun MainSettingsScreen(
     navigationIcon: @Composable () -> Unit,
     navigateToSkillSettings: () -> Unit,
+    navigateToLocalAiSettings: () -> Unit = {},
     viewModel: MainSettingsViewModel = hiltViewModel(),
 ) {
     Scaffold(
@@ -62,6 +64,7 @@ fun MainSettingsScreen(
     ) {
         MainSettingsScreen(
             navigateToSkillSettings = navigateToSkillSettings,
+            navigateToLocalAiSettings = navigateToLocalAiSettings,
             viewModel = viewModel,
             modifier = Modifier.padding(it),
         )
@@ -71,6 +74,7 @@ fun MainSettingsScreen(
 @Composable
 private fun MainSettingsScreen(
     navigateToSkillSettings: () -> Unit,
+    navigateToLocalAiSettings: () -> Unit = {},
     viewModel: MainSettingsViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -118,6 +122,16 @@ private fun MainSettingsScreen(
                 modifier = Modifier
                     .clickable(onClick = navigateToSkillSettings)
                     .testTag("skill_settings_item")
+            )
+        }
+        item {
+            SettingsItem(
+                title = "Local AI",
+                icon = Icons.Default.AutoAwesome,
+                description = "On-device model, offline learning & fitness data import",
+                modifier = Modifier
+                    .clickable(onClick = navigateToLocalAiSettings)
+                    .testTag("local_ai_settings_item")
             )
         }
 
