@@ -27,6 +27,17 @@ if(NOT EXISTS "${LLAMA_DIR}/CMakeLists.txt")
     return()
 endif()
 
+# Android 15+ uses 16 KB memory pages (and Play has required 16 KB-aligned native
+# libraries since Nov 2025). NDK r27 still links with 4 KB alignment by default —
+# r28+ made 16 KB the default — and a 4 KB-aligned .so fails to load on 16 KB-page
+# devices such as the Pixel 9 / Galaxy S25. Set before add_subdirectory so that
+# everything built below, including ggml/llama, inherits it.
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+
+# Link llama/ggml statically into libdicio_llm.so, so the APK ships one native
+# library for the LLM instead of a set of interdependent shared objects.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 # --- llama.cpp configuration -------------------------------------------------
 # We only need the library, not the tools/examples/tests/server.
 set(LLAMA_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
@@ -45,11 +56,12 @@ add_library(dicio_llm SHARED llama-jni.cpp)
 
 target_include_directories(dicio_llm PRIVATE
     "${LLAMA_DIR}/include"
-    "${LLAMA_DIR}/ggml/include"
-    "${LLAMA_DIR}/common")
+    "${LLAMA_DIR}/ggml/include")
 
+# NOTE: llama.cpp's `common` target is only built when LLAMA_BUILD_COMMON is on,
+# which it is not when llama.cpp is consumed via add_subdirectory. llama-jni.cpp
+# includes only <llama.h> and uses none of it, so it is not linked.
 target_link_libraries(dicio_llm
     llama
-    common
     android
     log)

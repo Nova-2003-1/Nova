@@ -82,7 +82,7 @@ class GgufModelManager(
                         load()
                     }
                     LlmModelState.NotLoaded, is LlmModelState.ErrorLoading -> load()
-                    LlmModelState.Downloading, LlmModelState.Loading, LlmModelState.Ready -> {}
+                    is LlmModelState.Downloading, LlmModelState.Loading, LlmModelState.Ready -> {}
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "ensureReady failed", t)
@@ -93,8 +93,19 @@ class GgufModelManager(
     private suspend fun download(modelUrl: String) {
         _state.value = LlmModelState.Downloading(null)
         try {
+            // an Ollama reference (`tinydolphin`, `qwen2.5:0.5b`, …) is resolved against the
+            // registry into the URL of its GGUF layer; a plain http(s) URL is downloaded as-is
+            val downloadUrl = if (OllamaRegistry.isReference(modelUrl)) {
+                val resolved = OllamaRegistry.resolve(okHttpClient, modelUrl)
+                warnIfTemplateUnsupported(modelUrl, resolved.template)
+                Log.i(TAG, "Resolved '$modelUrl' to ${resolved.blobUrl} (${resolved.sizeBytes} B)")
+                resolved.blobUrl
+            } else {
+                modelUrl
+            }
+
             withContext(Dispatchers.IO) {
-                val response = okHttpClient.getResponse(modelUrl)
+                val response = okHttpClient.getResponse(downloadUrl)
                 downloadBinaryFileWithPartial(
                     response = response,
                     file = modelFile,
@@ -125,6 +136,22 @@ class GgufModelManager(
         }
     }
 
+    /**
+     * [ChatFormat] renders prompts in a fixed ChatML style, which matches Qwen2.5 and TinyDolphin.
+     * When the registry tells us the model expects something else the download still proceeds — the
+     * model will load and answer, just with a prompt shape it was not trained on — so this only
+     * warns rather than failing.
+     */
+    private fun warnIfTemplateUnsupported(modelRef: String, template: String?) {
+        if (template != null && !template.contains("<|im_start|>")) {
+            Log.w(
+                TAG,
+                "Model '$modelRef' declares a non-ChatML prompt template; ChatFormat emits ChatML, " +
+                    "so answer quality may suffer. Declared template:\n$template"
+            )
+        }
+    }
+
     /** Unloads the model from memory (keeps the file on disk). */
     fun unload() {
         engine.unload()
@@ -139,12 +166,14 @@ class GgufModelManager(
         private const val MODEL_URL_MARKER = "llm-model-url"
 
         /**
-         * Default model. Qwen2.5-0.5B-Instruct is multilingual (good German) and follows the tool
-         * convention better than TinyDolphin, at a smaller size. Swap for a TinyDolphin GGUF URL in
-         * settings if you specifically want that model.
+         * Default model, as an [OllamaRegistry] reference. Qwen2.5-0.5B-Instruct is multilingual
+         * (good German), follows the tool convention better than TinyDolphin, and is the smaller
+         * download of the two (~380 MB against ~610 MB).
+         *
+         * Settings accepts any Ollama reference here — `tinydolphin` for that model specifically,
+         * or `qwen2.5:1.5b` for better quality — as well as a plain `https://` URL of a GGUF file,
+         * which is downloaded directly without touching the registry.
          */
-        const val defaultModelUrl =
-            "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/" +
-                "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+        const val defaultModelUrl = "qwen2.5:0.5b"
     }
 }

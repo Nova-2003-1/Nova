@@ -54,6 +54,12 @@ android {
             cmake {
                 // C++17, and only compile the LLM lib for arm64-v8a (device) and x86_64 (emulator)
                 arguments += "-DANDROID_STL=c++_shared"
+                // llama.cpp's mmap path calls posix_madvise()/POSIX_MADV_*, which bionic only
+                // exposes from API 23; the app's minSdk of 21 hides them and the native build
+                // fails to compile. The LLM is 64-bit only and needs a modern device regardless,
+                // so the native lib alone is built against API 23. On an older device
+                // System.loadLibrary() simply fails and LlamaCppEngine reports it, as before.
+                arguments += "-DANDROID_PLATFORM=android-23"
                 abiFilters += arrayOf("arm64-v8a", "x86_64")
             }
         }

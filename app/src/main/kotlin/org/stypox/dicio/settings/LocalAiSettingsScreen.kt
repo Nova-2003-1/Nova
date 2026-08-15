@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -24,12 +25,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.stypox.dicio.health.HealthImportManager
+import org.stypox.dicio.llm.GgufModelManager
 import org.stypox.dicio.llm.LlmModelState
 
 /**
@@ -86,6 +91,29 @@ fun LocalAiSettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Model", style = MaterialTheme.typography.titleMedium)
+
+                    // an Ollama reference, or a direct GGUF URL; kept in local state while being
+                    // edited so typing does not restart the download on every keystroke
+                    var modelInput by rememberSaveable(settings.llmModelUrl) {
+                        mutableStateOf(settings.llmModelUrl)
+                    }
+                    OutlinedTextField(
+                        value = modelInput,
+                        onValueChange = { modelInput = it },
+                        label = { Text("Ollama model or GGUF URL") },
+                        placeholder = { Text(GgufModelManager.defaultModelUrl) },
+                        supportingText = {
+                            Text("e.g. tinydolphin, qwen2.5:0.5b, or an https:// link to a .gguf")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (modelInput.trim() != settings.llmModelUrl) {
+                        OutlinedButton(onClick = { viewModel.setModel(modelInput) }) {
+                            Text("Use this model")
+                        }
+                    }
+
                     Text(modelStateText(modelState), style = MaterialTheme.typography.bodyMedium)
                     (modelState as? LlmModelState.Downloading)?.progress?.let { p ->
                         LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
