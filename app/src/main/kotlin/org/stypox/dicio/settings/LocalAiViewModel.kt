@@ -54,6 +54,22 @@ class LocalAiViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Sets the model to use: an Ollama reference such as `tinydolphin` or `qwen2.5:0.5b`, or a
+     * plain `https://` URL of a GGUF file. Blank resets to [GgufModelManager.defaultModelUrl].
+     * Changing this makes the manager notice the model changed, so the next download fetches the
+     * new one instead of reusing the file already on disk.
+     */
+    fun setModel(model: String) {
+        viewModelScope.launch {
+            dataStore.updateData { it.toBuilder().setLlmModelUrl(model.trim()).build() }
+            modelManager.refresh(
+                enabled = settingsState.value.llmEnabled,
+                modelUrl = currentModelUrl(),
+            )
+        }
+    }
+
     fun setLearningEnabled(enabled: Boolean) {
         viewModelScope.launch {
             dataStore.updateData { it.toBuilder().setLlmLearningEnabled(enabled).build() }
