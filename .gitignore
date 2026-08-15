@@ -6,10 +6,16 @@
 /build
 /captures
 .externalNativeBuild
+.cxx
 /models
 /aars/build
 /checkouts
 .kotlin
+
+# On-device LLM: llama.cpp is added as a git submodule (see docs/local-llm.md),
+# and downloaded GGUF models are never committed.
+/app/src/main/cpp/llama.cpp
+*.gguf
 
 # Fastlane
 fastlane/report.xml
