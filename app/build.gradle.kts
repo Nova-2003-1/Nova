@@ -50,19 +50,25 @@ android {
         // On-device LLM (llama.cpp) native build. Only 64-bit ABIs are built for the LLM: a ~1B
         // model is not viable on 32-bit armeabi-v7a. The CMakeLists gracefully builds a stub when
         // the llama.cpp submodule is absent (see docs/local-llm.md), so this stays buildable in CI.
-    //    externalNativeBuild {
-       //     cmake {
-         //       // C++17, and only compile the LLM lib for arm64-v8a (device) and x86_64 (emulator)
-           //     arguments += "-DANDROID_STL=c++_shared"
-             //   abiFilters += arrayOf("arm64-v8a", "x86_64")
+        externalNativeBuild {
+            cmake {
+                // C++17, and only compile the LLM lib for arm64-v8a (device) and x86_64 (emulator)
+                arguments += "-DANDROID_STL=c++_shared"
+                // llama.cpp's mmap path calls posix_madvise()/POSIX_MADV_*, which bionic only
+                // exposes from API 23; the app's minSdk of 21 hides them and the native build
+                // fails to compile. The LLM is 64-bit only and needs a modern device regardless,
+                // so the native lib alone is built against API 23. On an older device
+                // System.loadLibrary() simply fails and LlamaCppEngine reports it, as before.
+                arguments += "-DANDROID_PLATFORM=android-23"
+                abiFilters += arrayOf("arm64-v8a", "x86_64")
             }
         }
     }
 
-    //externalNativeBuild {
-    //    cmake {
-    //        path = file("src/main/cpp/CMakeLists.txt")
-    //        version = "3.22.1"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 
