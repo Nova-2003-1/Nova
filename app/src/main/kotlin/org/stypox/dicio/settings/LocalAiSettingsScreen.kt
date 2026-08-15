@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -81,6 +82,45 @@ fun LocalAiSettingsScreen(
                 checked = settings.llmLearningEnabled,
                 onCheckedChange = viewModel::setLearningEnabled,
             )
+            SwitchRow(
+                title = "Lock the app",
+                subtitle = "Require fingerprint / PIN to open the assistant.",
+                checked = settings.appLockEnabled,
+                onCheckedChange = viewModel::setAppLockEnabled,
+            )
+
+            // --- private "home brain" (own server) ---
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Private home brain", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Use a cleverer model running on your own computer (Ollama). When your " +
+                            "computer is reachable it answers; otherwise the phone model takes over. " +
+                            "Your data only goes to your own machine.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    SwitchRow(
+                        title = "Prefer my computer when available",
+                        subtitle = "Auto-switch: computer online = clever, offline = on-device.",
+                        checked = settings.llmPreferServer,
+                        onCheckedChange = viewModel::setPreferServer,
+                    )
+                    OutlinedTextField(
+                        value = settings.llmServerUrl,
+                        onValueChange = viewModel::setServerUrl,
+                        label = { Text("Server address (e.g. http://192.168.1.20:11434)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = settings.llmServerModel,
+                        onValueChange = viewModel::setServerModel,
+                        label = { Text("Model name (e.g. qwen2.5:7b)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
 
             // --- model status ---
             Card(Modifier.fillMaxWidth()) {

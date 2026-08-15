@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -155,7 +156,13 @@ class MainActivity : BaseActivity() {
                 Box(
                     modifier = Modifier.safeDrawingPadding()
                 ) {
-                    Navigation()
+                    val settings = dataStore.data
+                        .collectAsState(initial = null).value
+                    org.stypox.dicio.ui.lock.AppLockGate(
+                        enabled = settings?.appLockEnabled == true
+                    ) {
+                        Navigation()
+                    }
                 }
             }
         }

@@ -29,4 +29,16 @@ message UserSettings {
     string llm_model_url = 12;
     // Whether the assistant learns durable facts about the user into assistant-memory.md.
     bool llm_learning_enabled = 13;
+
+    // Private "home brain": base URL of the user's own Ollama server (e.g. their laptop),
+    // like http://192.168.1.20:11434 . Empty means no server configured.
+    string llm_server_url = 14;
+    // Model name to request on that server, e.g. "qwen2.5:7b". Empty means the built-in default.
+    string llm_server_model = 15;
+    // When true and the server is reachable, route requests to the private server (clever);
+    // otherwise fall back to the fully offline on-device model.
+    bool llm_prefer_server = 16;
+
+    // Require device authentication (fingerprint / PIN) to open the app.
+    bool app_lock_enabled = 17;
 }

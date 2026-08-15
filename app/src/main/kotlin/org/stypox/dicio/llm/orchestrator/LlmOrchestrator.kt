@@ -13,6 +13,7 @@ import org.stypox.dicio.llm.LlmEvent
 import org.stypox.dicio.llm.LlmMessage
 import org.stypox.dicio.llm.LlmModelState
 import org.stypox.dicio.llm.LlmRole
+import org.stypox.dicio.llm.OllamaEngine
 
 /**
  * The brain of the "model decides" routing: every user turn is sent to the on-device model, which
@@ -28,7 +29,8 @@ import org.stypox.dicio.llm.LlmRole
  * changing the tools or the engine.
  */
 class LlmOrchestrator(
-    private val engine: LlmEngine,
+    private val localEngine: LlmEngine,
+    private val serverEngine: org.stypox.dicio.llm.OllamaEngine,
     private val modelManager: GgufModelManager,
     private val toolRegistry: ToolRegistry,
     private val knowledgeStore: KnowledgeStore,
@@ -49,7 +51,21 @@ class LlmOrchestrator(
         userInput: String,
         history: List<LlmMessage> = emptyList(),
     ): SkillOutput {
-        // make sure the model is loaded (idempotent, coalesced)
+        val settings = dataStore.data.first()
+
+        // Prefer the user's own private server ("home brain") when configured, enabled and
+        // reachable; otherwise fall back to the fully offline on-device model.
+        val useServer = settings.llmPreferServer &&
+            settings.llmServerUrl.isNotBlank() &&
+            runCatching { serverEngine.isReachable(settings.llmServerUrl) }.getOrDefault(false)
+
+        if (useServer) {
+            serverEngine.baseUrl = settings.llmServerUrl
+            serverEngine.model = settings.llmServerModel.ifBlank { OllamaEngine.DEFAULT_MODEL }
+            return runGeneration(ctx, serverEngine, userInput, history, settings.llmLearningEnabled)
+        }
+
+        // ----- offline path: ensure the on-device model is loaded -----
         modelManager.ensureReady(modelManager.modelPath)
         when (val s = modelManager.state.value) {
             is LlmModelState.Downloading ->
@@ -67,7 +83,17 @@ class LlmOrchestrator(
             LlmModelState.Ready -> { /* proceed */ }
         }
 
-        val learningEnabled = dataStore.data.first().llmLearningEnabled
+        return runGeneration(ctx, localEngine, userInput, history, settings.llmLearningEnabled)
+    }
+
+    /** Runs one generation turn against the given [engine] and turns it into a [SkillOutput]. */
+    private suspend fun runGeneration(
+        ctx: SkillContext,
+        engine: LlmEngine,
+        userInput: String,
+        history: List<LlmMessage>,
+        learningEnabled: Boolean,
+    ): SkillOutput {
         val messages = buildMessages(userInput, history, learningEnabled)
 
         return try {

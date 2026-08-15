@@ -35,6 +35,10 @@ object LlmModule {
 
     @Provides
     @Singleton
+    fun provideOllamaEngine(okHttpClient: OkHttpClient): OllamaEngine = OllamaEngine(okHttpClient)
+
+    @Provides
+    @Singleton
     fun provideKnowledgeStore(@ApplicationContext context: Context): KnowledgeStore =
         KnowledgeStore(context)
 
@@ -66,14 +70,16 @@ object LlmModule {
     @Provides
     @Singleton
     fun provideLlmOrchestrator(
-        engine: LlmEngine,
+        localEngine: LlmEngine,
+        serverEngine: OllamaEngine,
         modelManager: GgufModelManager,
         toolRegistry: ToolRegistry,
         knowledgeStore: KnowledgeStore,
         healthDataStore: HealthDataStore,
         dataStore: DataStore<UserSettings>,
     ): LlmOrchestrator = LlmOrchestrator(
-        engine = engine,
+        localEngine = localEngine,
+        serverEngine = serverEngine,
         modelManager = modelManager,
         toolRegistry = toolRegistry,
         knowledgeStore = knowledgeStore,

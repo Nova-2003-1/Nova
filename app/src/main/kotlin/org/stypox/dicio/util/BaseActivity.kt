@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.datastore.core.DataStore
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
@@ -27,7 +27,9 @@ import org.stypox.dicio.ui.theme.AppTheme
 import java.util.Locale
 import javax.inject.Inject
 
-abstract class BaseActivity : ComponentActivity() {
+// FragmentActivity (a subclass of ComponentActivity) is required so BiometricPrompt can host the
+// app-lock gate; Compose setContent works unchanged.
+abstract class BaseActivity : FragmentActivity() {
 
     @Inject
     lateinit var activityForResultManager: ActivityForResultManager

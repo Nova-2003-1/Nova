@@ -60,6 +60,30 @@ class LocalAiViewModel @Inject constructor(
         }
     }
 
+    fun setServerUrl(url: String) {
+        viewModelScope.launch {
+            dataStore.updateData { it.toBuilder().setLlmServerUrl(url.trim()).build() }
+        }
+    }
+
+    fun setServerModel(model: String) {
+        viewModelScope.launch {
+            dataStore.updateData { it.toBuilder().setLlmServerModel(model.trim()).build() }
+        }
+    }
+
+    fun setPreferServer(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStore.updateData { it.toBuilder().setLlmPreferServer(enabled).build() }
+        }
+    }
+
+    fun setAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStore.updateData { it.toBuilder().setAppLockEnabled(enabled).build() }
+        }
+    }
+
     /** Starts (or resumes) downloading + loading the model. */
     fun downloadModel() {
         modelManager.refresh(enabled = true, modelUrl = currentModelUrl())

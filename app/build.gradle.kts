@@ -159,6 +159,8 @@ dependencies {
 
     // Android
     implementation(libs.appcompat)
+    // App lock (fingerprint / device credential)
+    implementation(libs.biometric)
 
     // Compose (check out https://developer.android.com/jetpack/compose/bom/bom-mapping)
     implementation(libs.activity.compose)
